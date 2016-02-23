@@ -2,7 +2,6 @@
 #include <Wire.h>
 #include <math.h>
 #include <Adafruit_ADS1015.h>
-#include <FlexiTimer2.h>
 
 #include "interval.hpp"
 
@@ -298,22 +297,13 @@ constexpr float CALIB_B = -102.0720562;
 Sensor sensor;
 // SerialCommand serial_command(sensor);
 
-volatile bool sample = 0;
-
 void setup () {
 	pinMode(13, OUTPUT);
 
 	Serial.begin(115200);
 	sensor.begin();
 	sensor.set_calibration_factors(CALIB_A, CALIB_B, CALIB_A, CALIB_B);
-
-	FlexiTimer2::set(100, []{
-		sample = 1;
-	});
-	FlexiTimer2::start();
 }
-
-
 
 void loop() {
 	interval<Sensor::SAMPLE_RATE_MS>([]{
