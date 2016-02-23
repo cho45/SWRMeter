@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <math.h>
 #include <Adafruit_ADS1015.h>
+#include <LiquidCrystal_I2C.h>
 
 #include "interval.hpp"
 
@@ -19,7 +20,7 @@ String formatWatts(const float watts) {
 	if (watts < 1e-3) {
 		return String(watts * 1e3) + "mW";
 	} else {
-		return String(watts) + "W";
+		return String(watts) + "W ";
 	}
 }
 
@@ -46,7 +47,7 @@ public:
 	static constexpr float TX_THRESHOLD_dBm    = 10.0 * log10(TX_THRESHOLD_WATTS/1e-3);
 	static constexpr uint16_t TX_THRESHOLD_ADC = (TX_THRESHOLD_dBm + COUPLING_FACTOR + ATTENATOR_FACTOR - AD9807_DBM_ORIGIN) * 25;
 
-	static constexpr uint16_t SAMPLE_RATE  = 10; // SPS
+	static constexpr uint16_t SAMPLE_RATE  = 50; // SPS
 	static constexpr uint16_t SAMPLE_RATE_MS = 1000 / SAMPLE_RATE;
 	static constexpr uint16_t HISTORY_SIZE = SAMPLE_RATE * 5;
 
@@ -191,6 +192,65 @@ public:
 };
 
 class Display {
+	LiquidCrystal_I2C lcd;
+public:
+	Display() :
+		lcd(LiquidCrystal_I2C(0x27, 16, 2)) 
+	{
+	}
+
+	enum {
+		MODE_RX,
+		MODE_TX
+	} mode;
+
+	float swr = 1.0;
+	float fwd_pep = 0;
+	float fwd_avg = 0;
+
+	void begin() {
+		mode = MODE_RX;
+		lcd.begin();
+		lcd.backlight();
+		lcd.setCursor(0, 0);
+		lcd.print("Initializing...");
+	}
+
+	void set_last_result(const SensorResult& result) {
+	}
+
+	void set_avg_result(const SensorResult& result) {
+		fwd_avg = result.watts_fwd;
+	}
+
+	void set_pep_result(const SensorResult& result) {
+		if (result.watts_fwd > Sensor::TX_THRESHOLD_WATTS) {
+			mode = MODE_TX;
+		} else
+		if (result.watts_fwd < Sensor::TX_THRESHOLD_WATTS) {
+			mode = MODE_RX;
+		}
+		fwd_pep = result.watts_fwd;
+		swr = result.swr;
+	}
+
+	void update() {
+		lcd.setCursor(0, 0);
+		lcd.print(formatWatts(fwd_pep));
+		lcd.print(" / ");
+		lcd.print(formatWatts(fwd_avg));
+		lcd.print("                ");
+
+		if (mode == MODE_TX) {
+			lcd.setCursor(0, 1);
+			lcd.print("SWR:");
+			lcd.print(String(swr));
+			lcd.print("       ");
+		} else {
+			lcd.setCursor(0, 1);
+			lcd.print("Standby         ");
+		}
+	}
 };
 
 class SerialCommand {
@@ -296,11 +356,15 @@ constexpr float CALIB_B = -102.0720562;
 
 Sensor sensor;
 // SerialCommand serial_command(sensor);
+//
+Display display;
 
 void setup () {
 	pinMode(13, OUTPUT);
-
 	Serial.begin(115200);
+
+	display.begin();
+
 	sensor.begin();
 	sensor.set_calibration_factors(CALIB_A, CALIB_B, CALIB_A, CALIB_B);
 }
@@ -323,18 +387,24 @@ void loop() {
 			DEBUG_VALUE("watts_fwd = ", formatWatts(result.watts_fwd));
 			DEBUG_VALUE("watts_ref = ", formatWatts(result.watts_ref));
 			DEBUG_VALUE("swr ", result.swr);
+			display.set_last_result(result);
+		};
+
+		{
+			SensorResult result = sensor.calculate_avg(1);
+			DEBUG_VALUE("watts_fwd avg = ", formatWatts(result.watts_fwd));
+			display.set_avg_result(result);
 		};
 
 		{
 			SensorResult result = sensor.calculate_pep(3);
 			DEBUG_VALUE("watts_fwd pep = ", formatWatts(result.watts_fwd));
-		};
-		{
-			SensorResult result = sensor.calculate_avg(3);
-			DEBUG_VALUE("watts_fwd avg = ", formatWatts(result.watts_fwd));
+			display.set_pep_result(result);
 		};
 
 		digitalWrite(13, LOW);
+
+		display.update();
 	});
 }
 
