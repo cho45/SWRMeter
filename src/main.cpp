@@ -44,6 +44,7 @@ public:
 	static constexpr float AD9807_DBM_SLOPE     = 25; // mV
 	static constexpr float COUPLING_FACTOR      = -29.54;
 	static constexpr float ATTENATOR_FACTOR     = -16.1;
+	static constexpr float DBM_INTERCEPT        = AD9807_DBM_INTERCEPT - COUPLING_FACTOR - ATTENATOR_FACTOR;
 
 	// threshold (W) for not in transmit
 	static constexpr float TX_THRESHOLD_WATTS  = 0.001;
@@ -181,8 +182,8 @@ public:
 			return result;
 		}
 
-		result.dbm_fwd = static_cast<float>(adc_fwd) / AD9807_DBM_SLOPE + AD9807_DBM_INTERCEPT - COUPLING_FACTOR - ATTENATOR_FACTOR;
-		result.dbm_ref = static_cast<float>(adc_ref) / AD9807_DBM_SLOPE + AD9807_DBM_INTERCEPT - COUPLING_FACTOR - ATTENATOR_FACTOR;
+		result.dbm_fwd = static_cast<float>(adc_fwd) / AD9807_DBM_SLOPE + DBM_INTERCEPT;
+		result.dbm_ref = static_cast<float>(adc_ref) / AD9807_DBM_SLOPE + DBM_INTERCEPT;
 
 		result.watts_fwd = pow(10, result.dbm_fwd / 10) / 1000.0;
 		result.watts_ref = pow(10, result.dbm_ref / 10) / 1000.0;
