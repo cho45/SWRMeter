@@ -387,8 +387,10 @@ public:
 
 constexpr float CALIB_A = 1.010544815;
 constexpr float CALIB_B = -102.0720562;
+constexpr float ALERT_SWR = 3.0;
 
-uint16_t ON_AIR = 13;
+uint8_t ON_AIR = 13;
+uint8_t BUZZAR = 3;
 
 Sensor sensor;
 SerialCommand serial_command(sensor);
@@ -430,6 +432,11 @@ void loop() {
 			SensorResult result = sensor.calculate_last();
 			display.set_last_result(result);
 			serial_print("$LAST", result);
+			if (result.swr > ALERT_SWR) {
+				analogWrite(BUZZAR, 127);
+			} else {
+				analogWrite(BUZZAR, 0);
+			}
 		};
 	});
 
