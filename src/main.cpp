@@ -7,7 +7,7 @@
 #include "interval.hpp"
 
 #define DEBUG 1
-#undef DEBUG
+// #undef DEBUG
 #ifdef DEBUG
 	#define DEBUG_VALUE(prefix, value) Serial.print(prefix); Serial.println(value);
 #else
@@ -127,6 +127,9 @@ public:
 	bool sample() {
 		float adc_fwd = read_fwd();
 		float adc_ref = read_ref();
+		DEBUG_VALUE("adc_fwd(raw)", adc_fwd);
+		DEBUG_VALUE("adc_ref(raw)", adc_ref);
+
 		adc_fwd = adc_fwd * fwd_a + fwd_b;
 		adc_ref = adc_ref * ref_a + ref_b;
 		if (adc_fwd < adc_ref) {
@@ -385,8 +388,10 @@ public:
 	}
 };
 
-constexpr float CALIB_A = 1.010544815;
-constexpr float CALIB_B = -102.0720562;
+constexpr float CALIB_FWD_A = 1.010544815;
+constexpr float CALIB_FWD_B = -102.0720562;
+constexpr float CALIB_REF_A = 1.041666667;
+constexpr float CALIB_REF_B = -170.227294;
 constexpr float ALERT_SWR = 3.0;
 
 uint8_t ON_AIR = 13;
@@ -414,7 +419,7 @@ void setup () {
 	display.begin();
 
 	sensor.begin();
-	sensor.set_calibration_factors(CALIB_A, CALIB_B, CALIB_A, CALIB_B);
+	sensor.set_calibration_factors(CALIB_FWD_A, CALIB_FWD_B, CALIB_REF_A, CALIB_REF_B);
 }
 
 void loop() {
