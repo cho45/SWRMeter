@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include <math.h>
 #include <Adafruit_ADS1015.h>
-#include <LiquidCrystal_I2C.h>
+#include <wAcm1602Func.h>
 
 #include "interval.hpp"
 
@@ -199,10 +199,10 @@ public:
 };
 
 class Display {
-	LiquidCrystal_I2C lcd;
+	wLcdFunc lcd;
 public:
 	Display() :
-		lcd(LiquidCrystal_I2C(0x27, 16, 2)) 
+		lcd(wLcdFunc()) 
 	{
 	}
 
@@ -217,11 +217,11 @@ public:
 
 	void begin() {
 		mode = MODE_RX;
-		lcd.begin();
-		lcd.backlight();
+		lcd.init();
+		lcd.noBlink();
+		lcd.noCursor();
 		lcd.setCursor(0, 0);
 		lcd.print("Initializing...");
-		lcd.noBacklight();
 	}
 
 	void set_last_result(const SensorResult& result) {
@@ -234,11 +234,9 @@ public:
 	void set_pep_result(const SensorResult& result) {
 		if (result.watts_fwd > Sensor::TX_THRESHOLD_WATTS) {
 			mode = MODE_TX;
-			lcd.backlight();
 		} else
 		if (result.watts_fwd < Sensor::TX_THRESHOLD_WATTS) {
 			mode = MODE_RX;
-			lcd.noBacklight();
 		}
 		fwd_pep = result.watts_fwd;
 		swr = result.swr;
